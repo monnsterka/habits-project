@@ -18,6 +18,26 @@ def parse_args():
 
     return parser.parse_args()
 
+def menu():
+     print("\n--- MENU ---")
+     print("1 - create habit")
+     print("2 - show habits")
+     print("0 - Quit")
+
+     return input("Choose option: ")
+
+def add_habit(habits):
+    name = input ("Write name of the habit: ")
+    habits.append(name)
+    print (f"Habit '{name}' added")
+
+def show_habits(habits):
+    if not habits:
+        print("No habits")
+    else:
+        for n in habits:
+            print("-", n)
+
 def main():
     args = parse_args()
 
@@ -33,8 +53,22 @@ def main():
     if args.seed:
         print ("Loading testing data...")
 
+    habits = []
+
     #Aplication Start 
-    print ("Aplication running")
+    while True:
+        choice = menu()
+
+        if choice == "1":
+            add_habit(habits)
+        elif choice == "2":
+            show_habits(habits)
+        elif choice == "0":
+            print("Ending the application")
+            break
+        else:
+            print("Incorrect choice")
+
 
     #Application quit
     db.close()
