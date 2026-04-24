@@ -38,6 +38,13 @@ class Database:
         )
         self.conn.commit()
 
+    def update_habit(self, habit_id, new_name):
+        self.cursor.execute(
+            "UPDATE habits SET name = ? WHERE id = ?",
+            (new_name, habit_id)
+        )
+        self.conn.commit()
+
     def close(self):
         self.conn.close()
         print("Database closed")
@@ -57,6 +64,7 @@ def menu():
     print("1 - create habit")
     print("2 - show habits")
     print("3 - delete habit")
+    print("4 - update habit")
     print("0 - Quit")
     return input("Choose option: ")
 
@@ -84,6 +92,16 @@ def delete_habit(db):
     except ValueError:
         print("Habit deleted")
 
+def update_habit(db):
+    try:
+        habit_id = int(input("Enter habit ID to update:  "))
+        new_name =input("Enter new name:  ")
+
+        db.update_habit(habit_id, new_name)
+        print("Habit updated")
+    except ValueError:
+        print("Invalid input")
+
 
 # MAIN
 
@@ -107,6 +125,9 @@ def main():
 
         elif choice == "3":
             delete_habit(db)
+
+        elif choice == "4":
+            update_habit(db)
 
         elif choice == "0":
             print("Ending the application")
