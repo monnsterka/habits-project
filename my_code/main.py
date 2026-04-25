@@ -1,6 +1,7 @@
 import argparse
 import os
 import sqlite3
+from datetime import date 
 
 
 class Database:
@@ -18,6 +19,17 @@ class Database:
                 name TEXT NOT NULL
             )
         """)
+
+        self.cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS records (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                habit_id INTEGER,
+                date TEXT,
+                UNIQUE(habit_id, date)
+            )
+        """)
+        
         self.conn.commit()
 
     def add_habit(self, name):
@@ -45,6 +57,24 @@ class Database:
         )
         self.conn.commit()
 
+    
+    def mark_done(self,habit_id, today):
+        try:
+            self.cursor.execute(
+                "INSERT INTO records (habit_id, date) VALUES (?, ?)",
+                (habit_id, today)
+            )
+            self.conn.commit()
+        except sqlite3.IntegrityError:
+            print("Already marked as done today")
+
+    def is_done_today(self, habit_id, today):
+        self.cursor.execute(
+            "SELECT 1 FROM records WHERE habit_id = ? AND date = ?",
+            (habit_id, today)
+        )
+        return self.cursor.fetchone() is not None
+
     def close(self):
         self.conn.close()
         print("Database closed")
@@ -65,7 +95,9 @@ def menu():
     print("2 - show habits")
     print("3 - delete habit")
     print("4 - update habit")
+    print("5 - mark habit as done today")
     print("0 - Quit")
+
     return input("Choose option: ")
 
 
@@ -76,31 +108,69 @@ def add_habit(db):
 
 
 def show_habits(db):
+    today = date.today().isoformat()
     habits = db.get_habits()
 
     if not habits:
         print("No habits")
     else:
         for h in habits:
-            print(f"{h[0]} - {h[1]}")
+            done = db.is_done_today(h[0], today)
+            status = "✔" if done else "✘"
+            print(f"{h[0]} - {h[1]} [{status}]")
 
 def delete_habit(db):
     try:
         habit_id = int(input("Enter habit ID to delete:  "))
+
+        habits = db.get_habits()
+        ids = [h[0] for h in habits]
+
+        if habit_id not in ids:
+            print("Habit does not exist")
+            return
+
         db.delete_habit(habit_id)
         print("Habit deleted")
+
     except ValueError:
-        print("Habit deleted")
+        print("Invalid ID")
 
 def update_habit(db):
     try:
         habit_id = int(input("Enter habit ID to update:  "))
-        new_name =input("Enter new name:  ")
+        new_name = input("Enter new name:  ")
+
+        habits = db.get_habits()
+        ids = [h[0] for h in habits]
+
+        if habit_id not in ids:
+            print("Habit does not exist")
+            return
 
         db.update_habit(habit_id, new_name)
         print("Habit updated")
+
     except ValueError:
         print("Invalid input")
+
+def mark_done(db):
+    try:
+        habit_id = int(input("Enter habit ID: "))
+        today = date.today().isoformat()
+
+        habits = db.get_habits()
+        ids = [h[0] for h in habits]
+
+        if habit_id not in ids:
+            print("Habit does not exist")
+            return
+
+        db.mark_done(habit_id, today)
+        print("Marked as done")
+
+    except ValueError:
+        print("Invalid ID")
 
 
 # MAIN
@@ -128,6 +198,9 @@ def main():
 
         elif choice == "4":
             update_habit(db)
+
+        elif choice == "5":
+            mark_done(db)
 
         elif choice == "0":
             print("Ending the application")
