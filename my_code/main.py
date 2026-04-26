@@ -58,7 +58,7 @@ class Database:
         self.conn.commit()
 
     
-    def mark_done(self,habit_id, today):
+    def mark_done(self, habit_id, today):
         try:
             self.cursor.execute(
                 "INSERT INTO records (habit_id, date) VALUES (?, ?)",
@@ -110,6 +110,16 @@ class Database:
         self.conn.close()
         print("Database closed")
 
+# HELPER (index to ID )
+
+def get_habit_by_index(db, index):
+    habits = db.get_habits()
+
+    if index < 1 or index > len(habits):
+        return None
+    
+    return habits [index - 1] # (id,name)
+
 
 # CLI
 
@@ -145,43 +155,39 @@ def show_habits(db):
     if not habits:
         print("No habits")
     else:
-        for h in habits:
+        for i, h in enumerate(habits, start=1):
             done = db.is_done_today(h[0], today)
             streak = db.get_streak(h[0])
             status = "✔" if done else "✘"
 
-            print(f"{h[0]} - {h[1]} [{status}] 🔥{streak}")
+            print(f"{i} - {h[1]} [{status}] 🔥{streak}")
 
 def delete_habit(db):
     try:
-        habit_id = int(input("Enter habit ID to delete:  "))
+        index = int(input("Choose habit number to delete:  "))
 
-        habits = db.get_habits()
-        ids = [h[0] for h in habits]
-
-        if habit_id not in ids:
-            print("Habit does not exist")
+        habit = get_habit_by_index(db, index)
+        if not habit:
+            print("Invalid choice")
             return
-
-        db.delete_habit(habit_id)
-        print("Habit deleted")
+        
+        db.delete_habit(habit[0])
+        print ("Habit deleted")
 
     except ValueError:
-        print("Invalid ID")
+        print("Invalid input")
 
 def update_habit(db):
     try:
-        habit_id = int(input("Enter habit ID to update:  "))
+        index = int(input("Choose habit number to update:  "))
         new_name = input("Enter new name:  ")
 
-        habits = db.get_habits()
-        ids = [h[0] for h in habits]
-
-        if habit_id not in ids:
-            print("Habit does not exist")
+        habit = get_habit_by_index(db, index)
+        if not habit:
+            print("Invalid choice")
             return
-
-        db.update_habit(habit_id, new_name)
+    
+        db.update_habit(habit[0], new_name)
         print("Habit updated")
 
     except ValueError:
@@ -189,21 +195,19 @@ def update_habit(db):
 
 def mark_done(db):
     try:
-        habit_id = int(input("Enter habit ID: "))
+        index = int(input("Choose habit number: "))
         today = date.today().isoformat()
 
-        habits = db.get_habits()
-        ids = [h[0] for h in habits]
-
-        if habit_id not in ids:
-            print("Habit does not exist")
+        habit = get_habit_by_index(db, index)
+        if not habit:
+            print("Invalid choice")
             return
-
-        db.mark_done(habit_id, today)
+        
+        db.mark_done(habit[0], today)
         print("Marked as done")
 
     except ValueError:
-        print("Invalid ID")
+        print("Invalid Input")
 
 
 # MAIN
