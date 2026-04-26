@@ -1,7 +1,7 @@
 import argparse
 import os
 import sqlite3
-from datetime import date 
+from datetime import date, timedelta
 
 
 class Database:
@@ -74,6 +74,37 @@ class Database:
             (habit_id, today)
         )
         return self.cursor.fetchone() is not None
+    
+    def get_streak(self, habit_id):
+        self.cursor.execute(
+            "SELECT date FROM records WHERE habit_id = ? ORDER BY date DESC",
+            (habit_id,)
+        )
+        rows = self.cursor.fetchall()
+
+        if not rows:
+            return 0
+        
+        streak = 0
+        today = date.today()
+        yesterday = today - timedelta(days = 1)
+
+        for i, (d,) in enumerate(rows):
+            record_date = date.fromisoformat(d)
+
+            # first day needs to be today or yesterday 
+            if i == 0:
+                if record_date != today and record_date != yesterday:
+                    return 0
+                
+            if i > 0:
+                prev_date = date.fromisoformat(rows[i - 1][0])
+                if (prev_date - record_date).days != 1:
+                    break
+
+            streak += 1
+
+        return streak
 
     def close(self):
         self.conn.close()
@@ -116,8 +147,10 @@ def show_habits(db):
     else:
         for h in habits:
             done = db.is_done_today(h[0], today)
+            streak = db.get_streak(h[0])
             status = "✔" if done else "✘"
-            print(f"{h[0]} - {h[1]} [{status}]")
+
+            print(f"{h[0]} - {h[1]} [{status}] 🔥{streak}")
 
 def delete_habit(db):
     try:
