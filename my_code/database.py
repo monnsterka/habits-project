@@ -11,13 +11,16 @@ class Database:
         self.create_table()
 
     def create_table(self):
+         # HABITS TABLE
         self.cursor.execute("""
             CREATE TABLE IF NOT EXISTS habits (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL
+                name TEXT NOT NULL,
+                periodicity TEXT NOT NULL
             )
         """)
 
+        # RECORDS TABLE (tracking done days)
         self.cursor.execute("""
             CREATE TABLE IF NOT EXISTS records (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -29,15 +32,17 @@ class Database:
 
         self.conn.commit()
 
-    def add_habit(self, name):
+    def add_habit(self, name, periodicity):
         self.cursor.execute(
-            "INSERT INTO habits (name) VALUES (?)",
-            (name,)
+            "INSERT INTO habits (name, periodicity) VALUES (?, ?)",
+            (name, periodicity)
         )
         self.conn.commit()
 
     def get_habits(self):
-        self.cursor.execute("SELECT id, name FROM habits")
+        self.cursor.execute(
+            "SELECT id, name, periodicity FROM habits"
+        )
         return self.cursor.fetchall()
 
     def delete_habit(self, habit_id):
@@ -55,14 +60,11 @@ class Database:
         self.conn.commit()
 
     def mark_done(self, habit_id, today):
-        try:
-            self.cursor.execute(
-                "INSERT INTO records (habit_id, date) VALUES (?, ?)",
-                (habit_id, today)
-            )
-            self.conn.commit()
-        except sqlite3.IntegrityError:
-            print("Already marked as done today")
+        self.cursor.execute(
+             "INSERT OR IGNORE INTO records (habit_id, date) VALUES (?, ?)",
+            (habit_id, today)
+        )
+        self.conn.commit()
 
     def is_done_today(self, habit_id, today):
         self.cursor.execute(
@@ -94,7 +96,7 @@ class Database:
 
             if i > 0:
                 prev_date = date.fromisoformat(rows[i - 1][0])
-                if (prev_date - record_date).days != 1:
+                if (record_date - prev_date).days != 1:
                     break
 
             streak += 1

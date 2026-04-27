@@ -2,7 +2,7 @@ import argparse
 import os
 
 from database import Database
-from cli import menu, add_habit, show_habits, delete_habit, update_habit, mark_done
+from cli import menu, add_habit, show_habits, delete_habit, update_habit, mark_done, run_analytics
 
 #CONNECTING EVERYTHING AND RUNNING THE MAIN PROGRAM
 
@@ -41,8 +41,11 @@ def main():
         elif choice == "5":
             mark_done(db)
 
+        elif choice == "6":
+            run_analytics(db)
+
         elif choice == "0":
-            print("Ending the application")
+            print("Ending the application 👋1")
             break
 
         else:
