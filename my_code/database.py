@@ -40,16 +40,11 @@ class Database:
         self.conn.commit()
 
     def get_habits(self):
-        self.cursor.execute(
-            "SELECT id, name, periodicity FROM habits"
-        )
+        self.cursor.execute("SELECT id, name, periodicity FROM habits ORDER BY id")
         return self.cursor.fetchall()
 
     def delete_habit(self, habit_id):
-        self.cursor.execute(
-            "DELETE FROM habits WHERE id = ?",
-            (habit_id,)
-        )
+        self.cursor.execute("DELETE FROM habits WHERE id = ?", (habit_id,))
         self.conn.commit()
 
     def update_habit(self, habit_id, new_name):
@@ -96,7 +91,7 @@ class Database:
 
             if i > 0:
                 prev_date = date.fromisoformat(rows[i - 1][0])
-                if (record_date - prev_date).days != 1:
+                if (prev_date - record_date).days != 1:
                     break
 
             streak += 1

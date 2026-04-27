@@ -36,7 +36,12 @@ def analytics_menu():
 
 def add_habit(db):
     name = input("Habit name: ")
-    periodicity = input("Periodicity (daily/weekly): ")
+
+    while True:
+        periodicity = input("Periodicity (daily/weekly): ").strip().lower()
+        if periodicity in ("daily", "weekly"):
+            break
+        print("Invalid input. Please type 'daily' or 'weekly'.")
 
     db.add_habit(name, periodicity)
     print(f"Habit '{name}' added")
@@ -114,36 +119,36 @@ def run_analytics(db):
 
         if choice == "1":
             habits = get_all_habits(db)
-            for h in habits:
-                print(f"{h[0]} - {h[1]} ({h[2]})")
+            for i, h in enumerate(habits, start=1):
+                print(f"{i} - {h[1]} ({h[2]})")
 
         elif choice == "2":
-            p = input("Enter periodicity (daily/weekly): ")
+            p = input("periodicity: ")
             habits = get_all_habits(db)
             result = get_habits_by_periodicity(habits, p)
 
             if not result:
-                print("No habits found")
-                continue
-
-            for h in result:
-                print(f"{h[0]} - {h[1]} ({h[2]})")
+                print("No habits found with that periodicity")
+            else:
+                for i, h in enumerate(result, start=1):
+                    streak = db.get_streak(h[0])
+                    print(f"{i} - {h[1]} ({h[2]}) 🔥{streak}")
 
         elif choice == "3":
-            print("Longest streak (all):", get_longest_streak_all(db))
+            results = get_longest_streak_all(db)
+            for r in results:
+                print(f"{r[1]} → 🔥 {r[3]}")
 
         elif choice == "4":
             try:
-                index = int(input("Choose habit number: "))
+                index = int(input("Habit index: "))
                 habit = get_habit_by_index(db, index)
 
-                if not habit:
+                if habit:
+                    streak = get_longest_streak_for_habit(db, habit[0])
+                    print(f"{habit[1]} → 🔥 {streak}")
+                else:
                     print("Invalid choice")
-                    continue
-
-                streak = get_longest_streak_for_habit(db, habit[0])
-                print("Streak:", streak)
-
             except ValueError:
                 print("Invalid input")
 

@@ -45,7 +45,7 @@ def main():
             run_analytics(db)
 
         elif choice == "0":
-            print("Ending the application 👋1")
+            print("Ending the application 👋")
             break
 
         else:
