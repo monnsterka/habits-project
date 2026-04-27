@@ -1,5 +1,5 @@
 import sqlite3
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 #DATA
 
@@ -11,12 +11,13 @@ class Database:
         self.create_table()
 
     def create_table(self):
-         # HABITS TABLE
+        # HABITS TABLE
         self.cursor.execute("""
             CREATE TABLE IF NOT EXISTS habits (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT NOT NULL,
-                periodicity TEXT NOT NULL
+                periodicity TEXT NOT NULL,
+                created_date TEXT
             )
         """)
 
@@ -26,21 +27,34 @@ class Database:
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 habit_id INTEGER,
                 date TEXT,
+                completed_at TEXT,
                 UNIQUE(habit_id, date)
             )
         """)
 
+        # migrate existing databases that predate these columns
+        try:
+            self.cursor.execute("ALTER TABLE habits ADD COLUMN created_date TEXT")
+        except Exception:
+            pass
+
+        try:
+            self.cursor.execute("ALTER TABLE records ADD COLUMN completed_at TEXT")
+        except Exception:
+            pass
+
         self.conn.commit()
 
     def add_habit(self, name, periodicity):
+        created_date = date.today().isoformat()
         self.cursor.execute(
-            "INSERT INTO habits (name, periodicity) VALUES (?, ?)",
-            (name, periodicity)
+            "INSERT INTO habits (name, periodicity, created_date) VALUES (?, ?, ?)",
+            (name, periodicity, created_date)
         )
         self.conn.commit()
 
     def get_habits(self):
-        self.cursor.execute("SELECT id, name, periodicity FROM habits ORDER BY id")
+        self.cursor.execute("SELECT id, name, periodicity, created_date FROM habits ORDER BY id")
         return self.cursor.fetchall()
 
     def delete_habit(self, habit_id):
@@ -55,9 +69,10 @@ class Database:
         self.conn.commit()
 
     def mark_done(self, habit_id, today):
+        completed_at = datetime.now().isoformat(timespec="seconds")
         self.cursor.execute(
-             "INSERT OR IGNORE INTO records (habit_id, date) VALUES (?, ?)",
-            (habit_id, today)
+            "INSERT OR IGNORE INTO records (habit_id, date, completed_at) VALUES (?, ?, ?)",
+            (habit_id, today, completed_at)
         )
         self.conn.commit()
 

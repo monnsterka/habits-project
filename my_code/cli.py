@@ -120,7 +120,8 @@ def run_analytics(db):
         if choice == "1":
             habits = get_all_habits(db)
             for i, h in enumerate(habits, start=1):
-                print(f"{i} - {h[1]} ({h[2]})")
+                created = h[3] if h[3] else "unknown"
+                print(f"{i} - {h[1]} ({h[2]}) | created: {created}")
 
         elif choice == "2":
             p = input("periodicity: ")
