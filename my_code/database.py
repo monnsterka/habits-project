@@ -69,6 +69,12 @@ class Database:
         return self.cursor.fetchone() is not None
 
     def get_streak(self, habit_id):
+        self.cursor.execute("SELECT periodicity FROM habits WHERE id = ?", (habit_id,))
+        row = self.cursor.fetchone()
+        if not row:
+            return 0
+        periodicity = row[0].strip().lower()
+
         self.cursor.execute(
             "SELECT date FROM records WHERE habit_id = ? ORDER BY date DESC",
             (habit_id,)
@@ -78,25 +84,60 @@ class Database:
         if not rows:
             return 0
 
-        streak = 0
-        today = date.today()
-        yesterday = today - timedelta(days=1)
+        if periodicity == "daily":
+            streak = 0
+            today = date.today()
+            yesterday = today - timedelta(days=1)
 
-        for i, (d,) in enumerate(rows):
-            record_date = date.fromisoformat(d)
+            for i, (d,) in enumerate(rows):
+                record_date = date.fromisoformat(d)
 
-            if i == 0:
-                if record_date != today and record_date != yesterday:
-                    return 0
+                if i == 0:
+                    if record_date != today and record_date != yesterday:
+                        return 0
 
-            if i > 0:
-                prev_date = date.fromisoformat(rows[i - 1][0])
-                if (prev_date - record_date).days != 1:
+                if i > 0:
+                    prev_date = date.fromisoformat(rows[i - 1][0])
+                    if (prev_date - record_date).days != 1:
+                        break
+
+                streak += 1
+
+            return streak
+
+        elif periodicity == "weekly":
+            # collect unique (year, week) pairs, newest first
+            weeks = sorted(
+                set(date.fromisoformat(d).isocalendar()[:2] for (d,) in rows),
+                reverse=True
+            )
+
+            today = date.today()
+            current_week = today.isocalendar()[:2]
+            prev_week = (today - timedelta(weeks=1)).isocalendar()[:2]
+
+            # streak is broken if the most recent week isn't this week or last week
+            if weeks[0] != current_week and weeks[0] != prev_week:
+                return 0
+
+            streak = 0
+            for i, week in enumerate(weeks):
+                if i == 0:
+                    streak += 1
+                    continue
+
+                # compare the Monday of each week to check they are exactly 7 days apart
+                prev_monday = date.fromisocalendar(weeks[i - 1][0], weeks[i - 1][1], 1)
+                curr_monday = date.fromisocalendar(week[0], week[1], 1)
+
+                if (prev_monday - curr_monday).days != 7:
                     break
 
-            streak += 1
+                streak += 1
 
-        return streak
+            return streak
+
+        return 0
 
     def close(self):
         self.conn.close()
