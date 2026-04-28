@@ -22,6 +22,7 @@ def main():
         print("Database reset")
 
     db = Database(args.db)
+    db.seed_data()
 
     while True:
         choice = menu()

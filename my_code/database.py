@@ -154,6 +154,65 @@ class Database:
 
         return 0
 
+    def seed_data(self):
+        self.cursor.execute("SELECT COUNT(*) FROM habits")
+        if self.cursor.fetchone()[0] > 0:
+            return
+
+        today = date.today()
+        created = (today - timedelta(days=28)).isoformat()
+
+        habits = [
+            ("Drink water", "daily"),
+            ("Exercise", "daily"),
+            ("Read a book", "daily"),
+            ("Weekly review", "weekly"),
+            ("Clean the house", "weekly"),
+        ]
+
+        habit_ids = []
+        for name, periodicity in habits:
+            self.cursor.execute(
+                "INSERT INTO habits (name, periodicity, created_date) VALUES (?, ?, ?)",
+                (name, periodicity, created)
+            )
+            habit_ids.append(self.cursor.lastrowid)
+
+        def add_record(habit_id, d):
+            completed_at = f"{d.isoformat()}T08:00:00"
+            self.cursor.execute(
+                "INSERT OR IGNORE INTO records (habit_id, date, completed_at) VALUES (?, ?, ?)",
+                (habit_id, d.isoformat(), completed_at)
+            )
+
+        # Drink water — completed every day for 4 weeks, two small gaps
+        for i in range(28):
+            if i not in (10, 20):
+                add_record(habit_ids[0], today - timedelta(days=i))
+
+        # Exercise — 7-day current streak, scattered completions before that
+        for i in range(7):
+            add_record(habit_ids[1], today - timedelta(days=i))
+        for i in range(10, 28, 2):
+            add_record(habit_ids[1], today - timedelta(days=i))
+
+        # Read a book — broken streak (last done 5 days ago)
+        for i in range(5, 28):
+            if i % 3 != 0:
+                add_record(habit_ids[2], today - timedelta(days=i))
+
+        # Weekly review — completed once every week for 4 weeks (full streak)
+        for week in range(4):
+            add_record(habit_ids[3], today - timedelta(weeks=week))
+
+        # Clean the house — missed 2 weeks ago (broken streak)
+        add_record(habit_ids[4], today)
+        add_record(habit_ids[4], today - timedelta(weeks=1))
+        add_record(habit_ids[4], today - timedelta(weeks=3))
+
+        self.conn.commit()
+        print("Sample data loaded.")
+
     def close(self):
         self.conn.close()
         print("Database closed")
